@@ -1,14 +1,17 @@
 import json
+import time
 from datetime import timedelta, datetime
 from io import BytesIO
 
+import pyarrow.parquet as pq
+import pydeck
 import streamlit as st
+from pyarrow import csv
 from pytz import timezone
 from streamlit_calendar_input import calendar_input
 
 from fetch import FeedType, get_available_dates, fetch_data, riga_code, all_code
-import pyarrow.parquet as pq
-from pyarrow import csv
+
 
 def parse_date_riga(date, file_name):
     hour = int(file_name.split("/")[-1].split(".")[0])
@@ -29,6 +32,11 @@ providers = {
         "fetch_time_column": "timestamp",
         "timezone": "Europe/Riga",
         "code": riga_code,
+        "columns": {
+            "latitude": "vehicle_position_latitude",
+            "longitude": "vehicle_position_longitude",
+            "id": "id"
+        }
     },
     "ovapi": {
         "name": "OVAPI",
@@ -56,11 +64,14 @@ providers = {
         "name": "YORK",
         "path": "data/york",
         "feeds": {
-            FeedType.VEHICLE_POSITION: "data/ovapi/VehiclePosition/",
+            FeedType.VEHICLE_POSITION: "data/york/VehiclePosition/",
         },
         "fetch_time_column": "fetchTime",
         "timezone": "Europe/London",
         "code": all_code,
+        "columns": {
+            "id": "trip_tripId"
+        }
     }
 }
 
@@ -104,15 +115,14 @@ if feed:
                     start_date = selected_date.replace(hour=hour, minute=0, second=0, microsecond=0)
                     end_date = start_date + timedelta(hours=1)
 
-
                     tz = timezone(
                         provider.get('timezone', 'Europe/Brussels')
                     )
                     with st.spinner("Fetching data..."):
                         data = fetch_data(start_date, end_date, feed_path=feed_path,
-                                      parse_date=provider.get('file_to_period', None),
-                                      timezone_str=provider.get('timezone', 'UTC'),
-                                      )
+                                          parse_date=provider.get('file_to_period', None),
+                                          timezone_str=provider.get('timezone', 'UTC'),
+                                          )
 
                     if data:
                         class ProxyParquetBytesIO(BytesIO):
@@ -145,7 +155,7 @@ if feed:
                             def __init__(self, table):
                                 super().__init__()
                                 import pyarrow as pa
-                                self.table:pa.Table = table
+                                self.table: pa.Table = table
 
                             def getvalue(self, *args, **kwargs):
                                 bytes_io = BytesIO()
@@ -155,8 +165,6 @@ if feed:
 
                                 print("Data written to bytes_io")
                                 return bytes_io.getvalue()
-
-
 
 
                         if st.button("Prepare Data for Download"):
@@ -171,7 +179,7 @@ if feed:
                                 )
 
                             with col3:
-                                    st.download_button(
+                                st.download_button(
                                     label="Download as JSON",
                                     data=ProxyJSONBytesIO(data),
                                     file_name=f"{feed_type}_{start_date.strftime('%Y-%m-%d_%H-%M')}.json",
@@ -181,8 +189,10 @@ if feed:
                     st.subheader("Get the code")
 
                     code = provider['code']
-                    code = code.replace('{start_date}', f'datetime({start_date.year}, {start_date.month}, {start_date.day}, {start_date.hour}, {start_date.minute}, 0, 0)')
-                    code = code.replace('{end_date}', f'datetime({end_date.year}, {end_date.month}, {end_date.day}, {end_date.hour}, {end_date.minute}, 0, 0)')
+                    code = code.replace('{start_date}',
+                                        f'datetime({start_date.year}, {start_date.month}, {start_date.day}, {start_date.hour}, {start_date.minute}, 0, 0)')
+                    code = code.replace('{end_date}',
+                                        f'datetime({end_date.year}, {end_date.month}, {end_date.day}, {end_date.hour}, {end_date.minute}, 0, 0)')
                     code = code.replace('{feed_path}', f'"{feed_path}"')
                     file_name = f"{provider['name'].replace(' ', '_').lower()}_fetch_data.py"
                     st.download_button(
@@ -192,9 +202,9 @@ if feed:
                         mime="text/plain"
                     )
 
-                    st.text("Once, you have downloaded the code, you can run it in your local environment to fetch the data, but first you need to install the required packages:")
+                    st.text(
+                        "Once, you have downloaded the code, you can run it in your local environment to fetch the data, but first you need to install the required packages:")
                     st.code("pip install pytz pyarrow minio pandas")
-
                     st.code(f"""from {file_name.split('.')[0]} import fetch_data
 from datetime import datetime
 
@@ -205,3 +215,92 @@ df = fetch_data(
     secret_key="YOUR_SECRET_KEY",
 )
 """)
+
+                    if feed_type == FeedType.VEHICLE_POSITION.value and data:
+                        st.subheader("Data Preview")
+                        columns = provider.get('columns', {})
+                        fetch_time_column = provider.get('fetch_time_column', 'fetchTime')
+                        latitude_column = columns.get('latitude', 'position_latitude')
+                        longitude_column = columns.get('longitude', 'position_longitude')
+                        vehicle_id = columns.get('id', 'trip_tripId')
+                        print(f"Columns: {columns}, Fetch time column: {fetch_time_column}, Latitude column: {latitude_column}, Longitude column: {longitude_column}")
+                        df = data.to_pandas()[
+                            [
+                                vehicle_id,
+                                fetch_time_column,
+                                latitude_column,
+                                longitude_column,
+                            ]
+                        ]
+                        # order by id
+                        df = df.sort_values(by=[vehicle_id, fetch_time_column])
+
+                        groups = []
+
+                        start_timestamp = df[fetch_time_column].min()
+                        end_timestamp = df[fetch_time_column].max() - start_timestamp
+
+                        for _, group in df.groupby(vehicle_id):
+                            timestamps = group[fetch_time_column].tolist()
+                            path = group[[longitude_column, latitude_column]].values.tolist()
+                            groups.append({
+                                "timestamps": list(map(int,[timestamp - start_timestamp for timestamp in timestamps])),
+                                "path": [
+                                    [float(coord) for coord in point] for point in path
+                                ],
+                                "color": [255, 0, 0]  # Red color for the path
+                            })
+
+                        replay_speed = st.slider(
+                            "Replay speed (how many seconds to show per 1 second), 1 means same speed",
+                            min_value=1,
+                            max_value=20,
+                            value=1,
+                            step=1,
+                        )
+
+                        number_of_trips_at_the_same_time = st.number_input(
+                            "Number of trips at the same time",
+                            min_value=1,
+                            max_value=1000,
+                            value=10,
+                        )
+
+                        groups = groups[:number_of_trips_at_the_same_time]
+
+                        trip_layer = pydeck.Layer(
+                            "TripsLayer",
+                            id="trips-layer",
+                            data=groups,
+                            get_timestamps="timestamps",
+                            get_path="path",
+                            current_time=0,
+                            trail_length=100,
+                            width_min_pixels=8,
+                            get_color="color",
+                        )
+                        mean_lat = df[latitude_column].mean()
+                        mean_lon = df[longitude_column].mean()
+                        deck = pydeck.Deck(
+                            initial_view_state=pydeck.ViewState(
+                                latitude=float(mean_lat),
+                                longitude=float(mean_lon),
+                                zoom=9,
+                                pitch=50,
+                            ),
+                            layers=[trip_layer],
+                        )
+
+                        placeholder = st.empty()
+
+                        for i in range(start_timestamp // replay_speed):
+                            with placeholder.container():
+                                st.progress(round(i / (start_timestamp // replay_speed) * 100))
+                                st.pydeck_chart(deck)
+                                trip_layer.current_time += replay_speed
+                                time.sleep(1)
+
+
+
+
+
