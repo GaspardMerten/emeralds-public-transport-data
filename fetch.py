@@ -136,7 +136,7 @@ def fetch_data(
                     current_table = batch.to_pandas()
                 else:
                     current_table = pa.concat_tables([current_table, batch.to_pandas()])
-                if current_table and limit is not None and len(current_table) >= limit:
+                if current_table is not None and limit is not None and len(current_table) >= limit:
                     break
 
     if limit is not None and table:
