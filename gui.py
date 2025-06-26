@@ -174,32 +174,37 @@ if feed:
                                 return bytes_io.getvalue()
 
 
-                        if st.button("Prepare Data for Download"):
-                            data = fetch_data(
-                                start_date,
-                                end_date,
-                                feed_path=feed_path,
-                                parse_date=provider.get('file_to_period', None),
-                                timezone_str=provider.get('timezone', 'UTC'),
-                                limit=None
-                            )
-                            col1, col2, col3 = st.columns(3)
-
-                            with col1:
-                                st.download_button(
-                                    label="Download as Parquet",
-                                    data=ProxyParquetBytesIO(data),
-                                    file_name=f"{feed_type}_{start_date.strftime('%Y-%m-%d_%H-%M')}.parquet",
-                                    mime="application/octet-stream"
+                        if  st.button("Prepare Data for Download"):
+                            if feed == "ovapi" and feed_type_enum == FeedType.TRIP_UPDATE:
+                                st.warning(
+                                    "The OVAPI Trip Update feed is too large to download. Please use the code provided below to fetch the data in your local environment.")
+                                st.stop()
+                            else:
+                                data = fetch_data(
+                                    start_date,
+                                    end_date,
+                                    feed_path=feed_path,
+                                    parse_date=provider.get('file_to_period', None),
+                                    timezone_str=provider.get('timezone', 'UTC'),
+                                    limit=None
                                 )
+                                col1, col2, col3 = st.columns(3)
 
-                            with col3:
-                                st.download_button(
-                                    label="Download as JSON",
-                                    data=ProxyJSONBytesIO(data),
-                                    file_name=f"{feed_type}_{start_date.strftime('%Y-%m-%d_%H-%M')}.json",
-                                    mime="application/json"
-                                )
+                                with col1:
+                                    st.download_button(
+                                        label="Download as Parquet",
+                                        data=ProxyParquetBytesIO(data),
+                                        file_name=f"{feed_type}_{start_date.strftime('%Y-%m-%d_%H-%M')}.parquet",
+                                        mime="application/octet-stream"
+                                    )
+
+                                with col3:
+                                    st.download_button(
+                                        label="Download as JSON",
+                                        data=ProxyJSONBytesIO(data),
+                                        file_name=f"{feed_type}_{start_date.strftime('%Y-%m-%d_%H-%M')}.json",
+                                        mime="application/json"
+                                    )
 
                     st.subheader("Get the code")
 

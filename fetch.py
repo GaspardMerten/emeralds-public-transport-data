@@ -131,15 +131,17 @@ def fetch_data(
 
         for file in os.listdir(tmpdir):
             print(file)
-            current_table = None
 
             for batch in pq.ParquetFile(tmpdir + "/" + file).iter_batches(batch_size=limit or 65536):
+                print(batch)
                 batch = Table.from_batches(batches=[batch])
-                if current_table is None:
-                    current_table = batch
+
+                if table is None:
+                    table = batch
                 else:
-                    current_table = pa.concat_tables([current_table, batch])
-                if current_table is not None and limit is not None and len(current_table) >= limit:
+                    table = pa.concat_tables([table, batch])
+
+                if table is not None and limit is not None and len(table) >= limit:
                     break
 
     if limit is not None and table is not None:
