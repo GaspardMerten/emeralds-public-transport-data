@@ -7,6 +7,7 @@ from typing import List
 import minio
 import pyarrow as pa
 import pyarrow.parquet as pq
+from pyarrow import Table
 from pytz import timezone
 
 
@@ -117,7 +118,7 @@ def fetch_data(
 
                     if end_date <= file_start_date or start_date >= file_end_date:
                         continue
-
+                    print("Fetching file:", file.object_name)
                     client.fget_object(
                         bucket,
                         file.object_name,
@@ -129,9 +130,11 @@ def fetch_data(
         table = None
 
         for file in os.listdir(tmpdir):
+            print(file)
             current_table = None
 
             for batch in pq.ParquetFile(tmpdir + "/" + file).iter_batches(batch_size=10000):
+                batch = Table.from_batches(batches=[batch])
                 if current_table is None:
                     current_table = batch
                 else:
