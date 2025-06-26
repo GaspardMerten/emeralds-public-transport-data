@@ -15,6 +15,12 @@ from fetch import FeedType, get_available_dates, fetch_data, riga_code, all_code
 from rich import print
 from rich.syntax import Syntax
 
+st.set_page_config(
+    page_title="Emeralds - GTFS RT Data Viewer",
+    page_icon="favicon.ico",
+    )
+
+
 
 def parse_date_riga(date, file_name):
     hour = int(file_name.split("/")[-1].split(".")[0])
