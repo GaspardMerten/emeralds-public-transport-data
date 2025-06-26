@@ -78,7 +78,9 @@ providers = {
     }
 }
 
+st.logo("logo.png",)
 st.title("Emeralds - GTFS RT Data Viewer")
+st.text("This application allows you to view and download GTFS RT data from various providers, by selecting a feed and a date.")
 feed = st.selectbox("Select a GTFS RT feed", list(providers.keys()), key="feed_selector", placeholder="Select a feed",
                     index=None)
 
@@ -218,6 +220,10 @@ df = fetch_data(
     secret_key="YOUR_SECRET_KEY",
 )
 """)
+
+                    if not data:
+                        st.warning("No data found for the selected date and hour.")
+                        st.stop()
 
                     st.subheader("Data Preview")
                     st.write("First 100 rows of the data:")
