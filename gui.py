@@ -131,6 +131,7 @@ if feed:
                         data = fetch_data(start_date, end_date, feed_path=feed_path,
                                           parse_date=provider.get('file_to_period', None),
                                           timezone_str=provider.get('timezone', 'UTC'),
+                                          limit=1000
                                           )
 
                     if data:
@@ -174,6 +175,14 @@ if feed:
 
 
                         if st.button("Prepare Data for Download"):
+                            data = fetch_data(
+                                start_date,
+                                end_date,
+                                feed_path=feed_path,
+                                parse_date=provider.get('file_to_period', None),
+                                timezone_str=provider.get('timezone', 'UTC'),
+                                limit=None
+                            )
                             col1, col2, col3 = st.columns(3)
 
                             with col1:

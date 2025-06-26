@@ -72,6 +72,7 @@ def fetch_data(
         access_key=os.environ.get("MINIO_ACCESS_KEY"),
         secret_key=os.environ.get("MINIO_SECRET_KEY"),
         timezone_str="Europe/Brussels",
+        limit: int=None,
 ) -> pa.Table:
     parse_date = parse_date or default_parse_date
 
@@ -136,6 +137,9 @@ def fetch_data(
                 table = current_table
             else:
                 table = pa.concat_tables([table, current_table])
+
+    if limit is not None:
+        table = table.limit(limit)
 
     return table
 
@@ -289,6 +293,9 @@ def fetch_data(
         file_end_date = datetime.strptime(
             date_str + "_" + end_time, "%Y-%m-%d_%H-%M-%S"
         )
+        
+        if file_start_date == file_end_date:
+            file_end_date = file_start_date + timedelta(days=1)
 
         return file_start_date, file_end_date
 
