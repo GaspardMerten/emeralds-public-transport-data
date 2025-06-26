@@ -58,6 +58,9 @@ def default_parse_date(date, file_name):
         date_str + "_" + end_time, "%Y-%m-%d_%H-%M-%S"
     )
 
+    if file_start_date == file_end_date:
+        file_end_date = file_start_date + timedelta(days=1)
+
     return file_start_date, file_end_date
 
 

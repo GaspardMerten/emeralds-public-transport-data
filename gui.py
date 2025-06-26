@@ -12,8 +12,6 @@ from pytz import timezone
 from streamlit_calendar_input import calendar_input
 
 from fetch import FeedType, get_available_dates, fetch_data, riga_code, all_code
-from rich import print
-from rich.syntax import Syntax
 
 st.set_page_config(
     page_title="Emeralds - GTFS RT Data Viewer",
@@ -145,7 +143,6 @@ if feed:
                                 bytes_io = BytesIO()
                                 pq.write_table(self.table, bytes_io)
                                 bytes_io.seek(0)
-                                print("Data written to bytes_io")
                                 return bytes_io.getvalue()
 
 
@@ -158,7 +155,6 @@ if feed:
                                 bytes_io = BytesIO()
                                 csv.write_csv(self.table, bytes_io)
                                 bytes_io.seek(0)
-                                print("Data written to bytes_io")
                                 return bytes_io.getvalue()
 
 
@@ -174,7 +170,6 @@ if feed:
                                 data = self.table.to_pylist()
                                 bytes_io.write(json.dumps(data).encode('utf-8'))
 
-                                print("Data written to bytes_io")
                                 return bytes_io.getvalue()
 
 
@@ -237,7 +232,6 @@ df = fetch_data(
 
                     with st.expander("Show data schema"):
                         schema_str = data.schema.to_string()
-                        print(Syntax(schema_str, "yaml", theme="monokai", line_numbers=True))
                         st.code(schema_str, language="yaml")
 
 
@@ -259,7 +253,6 @@ df = fetch_data(
                         st.plotly_chart(figure,height=800)
 
                         vehicle_id = columns.get('id', 'trip_tripId')
-                        print(f"Columns: {columns}, Fetch time column: {fetch_time_column}, Latitude column: {latitude_column}, Longitude column: {longitude_column}")
                         df = data.to_pandas()[
                             [
                                 vehicle_id,
