@@ -3,6 +3,7 @@ import time
 from datetime import timedelta, datetime
 from io import BytesIO
 
+import plotly.express
 import pyarrow.parquet as pq
 import pydeck
 import streamlit as st
@@ -11,6 +12,8 @@ from pytz import timezone
 from streamlit_calendar_input import calendar_input
 
 from fetch import FeedType, get_available_dates, fetch_data, riga_code, all_code
+from rich import print
+from rich.syntax import Syntax
 
 
 def parse_date_riga(date, file_name):
@@ -54,7 +57,7 @@ providers = {
         "name": "OVAPI train",
         "path": "data/ovapi-train",
         "feeds": {
-            FeedType.VEHICLE_POSITION: "data/ovapi-train/VehiclePosition/",
+            FeedType.TRIP_UPDATE: "data/ovapi-train/TripUpdate/",
         },
         "fetch_time_column": "fetchTime",
         "timezone": "Europe/Brussels",
@@ -216,12 +219,33 @@ df = fetch_data(
 )
 """)
 
+                    st.subheader("Data Preview")
+                    st.write("First 100 rows of the data:")
+                    st.write(data[:100])
+
+                    with st.expander("Show data schema"):
+                        schema_str = data.schema.to_string()
+                        print(Syntax(schema_str, "yaml", theme="monokai", line_numbers=True))
+                        st.code(schema_str, language="yaml")
+
+
                     if feed_type == FeedType.VEHICLE_POSITION.value and data:
-                        st.subheader("Data Preview")
+                        st.subheader("Data Visualization")
                         columns = provider.get('columns', {})
                         fetch_time_column = provider.get('fetch_time_column', 'fetchTime')
                         latitude_column = columns.get('latitude', 'position_latitude')
                         longitude_column = columns.get('longitude', 'position_longitude')
+
+                        figure = plotly.express.scatter_mapbox(
+                            data_frame=data.to_pandas().head(10000),
+                            lat=latitude_column,
+                            lon=longitude_column,
+                            zoom=10,
+                            mapbox_style="carto-positron",
+                            title=f"Static plot, vehicle positions on {start_date.strftime('%Y-%m-%d %H:%M')}",
+                        )
+                        st.plotly_chart(figure,height=800)
+
                         vehicle_id = columns.get('id', 'trip_tripId')
                         print(f"Columns: {columns}, Fetch time column: {fetch_time_column}, Latitude column: {latitude_column}, Longitude column: {longitude_column}")
                         df = data.to_pandas()[
@@ -251,10 +275,12 @@ df = fetch_data(
                                 "color": [255, 0, 0]  # Red color for the path
                             })
 
+                        st.markdown(f"**Replaying data from {start_date.strftime('%Y-%m-%d %H:%M')} to {end_date.strftime('%Y-%m-%d %H:%M')}**")
+
                         replay_speed = st.slider(
                             "Replay speed (how many seconds to show per 1 second), 1 means same speed",
                             min_value=1,
-                            max_value=20,
+                            max_value=60,
                             value=1,
                             step=1,
                         )
@@ -292,6 +318,7 @@ df = fetch_data(
                         )
 
                         placeholder = st.empty()
+
 
                         for i in range(start_timestamp // replay_speed):
                             with placeholder.container():
