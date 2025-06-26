@@ -131,7 +131,7 @@ if feed:
                         data = fetch_data(start_date, end_date, feed_path=feed_path,
                                           parse_date=provider.get('file_to_period', None),
                                           timezone_str=provider.get('timezone', 'UTC'),
-                                          limit=500000
+                                          limit=100 if feed_type_enum == FeedType.TRIP_UPDATE else None
                                           )
 
                     if data:
