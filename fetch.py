@@ -139,7 +139,7 @@ def fetch_data(
                 table = pa.concat_tables([table, current_table])
 
     if limit is not None:
-        table = table.limit(limit)
+        table = table[:limit]
 
     return table
 
