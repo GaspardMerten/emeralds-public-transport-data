@@ -139,7 +139,7 @@ def fetch_data(
                 if current_table is not None and limit is not None and len(current_table) >= limit:
                     break
 
-    if limit is not None and table:
+    if limit is not None and table is not None:
         table = table[:limit]
 
     return table
