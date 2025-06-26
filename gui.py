@@ -233,7 +233,7 @@ df = fetch_data(
 
                     st.subheader("Data Preview")
                     st.write("First 100 rows of the data:")
-                    st.write(data[:100])
+                    st.write(data[:100].to_pandas())
 
                     with st.expander("Show data schema"):
                         schema_str = data.schema.to_string()
