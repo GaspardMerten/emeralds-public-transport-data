@@ -131,7 +131,7 @@ if feed:
                         data = fetch_data(start_date, end_date, feed_path=feed_path,
                                           parse_date=provider.get('file_to_period', None),
                                           timezone_str=provider.get('timezone', 'UTC'),
-                                          limit=100000
+                                          limit=500000
                                           )
 
                     if data:
