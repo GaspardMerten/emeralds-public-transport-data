@@ -133,9 +133,9 @@ def fetch_data(
 
             for batch in pq.ParquetFile(tmpdir + "/" + file).iter_batches(batch_size=10000):
                 if current_table is None:
-                    current_table = batch.to_pandas()
+                    current_table = batch
                 else:
-                    current_table = pa.concat_tables([current_table, batch.to_pandas()])
+                    current_table = pa.concat_tables([current_table, batch])
                 if current_table is not None and limit is not None and len(current_table) >= limit:
                     break
 
