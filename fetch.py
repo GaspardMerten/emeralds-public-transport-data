@@ -133,6 +133,9 @@ def fetch_data(
                 tmpdir + "/" + file,
             )
 
+            if limit is not None and table is not None and len(table) >= limit:
+                break
+
             if table is None:
                 table = current_table
             else:
