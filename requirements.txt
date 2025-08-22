@@ -3,4 +3,5 @@ pyarrow
 streamlit
 minio
 streamlit-calendar-input
+streamlit-downloader
 plotly
