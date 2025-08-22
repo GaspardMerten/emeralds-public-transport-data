@@ -165,7 +165,7 @@ if feed:
                 st.warning("Bulk download on web is only supported for vehicle position feeds. Please use the code below")
             else:
 
-                st.write("Specify a start and end date. Then click on download button. CSV files for each day will be downloaded.")
+                st.write("Specify a start and end date. Then click on download button. CSV files for each day will be downloaded. For large provider such as OVAPI you can expect to wait close to a minute per file.")
 
                 start_date = st.date_input(key="start_date", label="Start Date", value=datetime.now() - timedelta(days=7))
                 end_date = st.date_input(key="end_date", label="End Date", value=datetime.now())
@@ -178,13 +178,13 @@ if feed:
                 if st.session_state.download:
                     if st.button("Stop download"):
                         st.session_state.download = False
+                        st.session_state.current_fetch_day = None
 
                 if st.session_state.download:
                     bulk_dl(
                         start_date=datetime(start_date.year, start_date.month, start_date.day),
                         end_date=datetime(end_date.year, end_date.month, end_date.day),
                     )
-                    st.session_state["download"] = False
 
                 st.subheader("Get the code")
 
