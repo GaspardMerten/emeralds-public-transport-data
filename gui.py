@@ -160,9 +160,10 @@ if feed:
         tab1, tab2= st.tabs(["General", "Bulk download"])
         with tab2:
 
-
             if feed_type_enum != FeedType.VEHICLE_POSITION:
                 st.warning("Bulk download on web is only supported for vehicle position feeds. Please use the code below")
+            elif provider['name'] == 'OVAPI':
+                st.warning("Bulk download on web is not supported for OVAPI, Streamlit cloud does not offer enough RAM")
             else:
 
                 st.write("Specify a start and end date. Then click on download button. CSV files for each day will be downloaded. For large provider such as OVAPI you can expect to wait close to a minute per file.")
