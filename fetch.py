@@ -163,7 +163,6 @@ def fetch_data(
             print(file)
 
             for batch in pq.ParquetFile(tmpdir + "/" + file).iter_batches(batch_size=limit or 65536):
-                print(batch)
                 batch = Table.from_batches(batches=[batch])
 
                 if table is None:

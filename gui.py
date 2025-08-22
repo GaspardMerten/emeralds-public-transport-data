@@ -138,6 +138,7 @@ def bulk_dl(start_date=None, end_date=None):
             "application/gzip",
         )
     time.sleep(1)
+    st.rerun()
 
 
 if feed:
