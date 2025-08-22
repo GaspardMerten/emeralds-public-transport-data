@@ -124,7 +124,10 @@ def bulk_dl(start_date=None, end_date=None):
 
         print(table.schema)
         columns_todrop = ["multiCarriageDetails", "trip_modifiedTrip"]
-        table = table.drop(columns_todrop)
+        try:
+            table = table.drop(columns_todrop)
+        except Exception:
+            pass
         with pa.CompressedOutputStream(file_path, "gzip") as out:
             csv.write_csv(table, out)
         del table
