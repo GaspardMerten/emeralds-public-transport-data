@@ -2,7 +2,7 @@ import enum
 import os
 import tempfile
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Generator
 
 import minio
 import pyarrow as pa
@@ -65,6 +65,36 @@ def default_parse_date(date, file_name):
     return file_start_date, file_end_date
 
 
+def fetch_data_per_days(
+        start_date,
+        end_date,
+        feed_path: str,
+        parse_date=None,
+        access_key=os.environ.get("MINIO_ACCESS_KEY"),
+        secret_key=os.environ.get("MINIO_SECRET_KEY"),
+        timezone_str="Europe/Brussels",
+        output_dir=  "data"
+
+):
+    os.makedirs(output_dir, exist_ok=True)
+    days = [
+        start_date + timedelta(days=i)
+        for i in range((end_date - start_date).days)
+    ]
+    for day in days:
+        table = fetch_data(
+            day,
+            day + timedelta(days=1),
+            feed_path,
+            parse_date=parse_date,
+            access_key=access_key,
+            secret_key=secret_key,
+            timezone_str=timezone_str,
+        )
+        if table is not None:
+            table.to_pandas().to_csv(f"data/{day.isoformat()[:10]}.csv", index=False)
+
+
 def fetch_data(
         start_date,
         end_date,
@@ -73,7 +103,7 @@ def fetch_data(
         access_key=os.environ.get("MINIO_ACCESS_KEY"),
         secret_key=os.environ.get("MINIO_SECRET_KEY"),
         timezone_str="Europe/Brussels",
-        limit: int=None,
+        limit: int = None,
 ) -> pa.Table:
     parse_date = parse_date or default_parse_date
 
@@ -149,6 +179,8 @@ def fetch_data(
 
     return table
 
+
+
 riga_code = """
 from datetime import datetime, timedelta
 import os
@@ -159,12 +191,42 @@ import pyarrow.parquet as pq
 from pytz import timezone
 import pandas as pd
 
+
+def fetch_data_per_days(
+        start_date,
+        end_date,
+        feed_path: str,
+        access_key=os.environ.get("MINIO_ACCESS_KEY"),
+        secret_key=os.environ.get("MINIO_SECRET_KEY"),
+        timezone_str="Europe/Brussels",
+        output_dir=  "data"
+
+):
+    os.makedirs(output_dir, exist_ok=True)
+    days = [
+        start_date + timedelta(days=i)
+        for i in range((end_date - start_date).days)
+    ]
+    for day in days:
+        table = fetch_data(
+            day,
+            day + timedelta(days=1),
+            feed_path,
+            access_key=access_key,
+            secret_key=secret_key,
+            timezone_str=timezone_str,
+        )
+        if table is not None:
+            table.to_csv(f"data/{day.isoformat()[:10]}.csv", index=False)
+
+
 def fetch_data(
         start_date={start_date},
         end_date={end_date},
         feed_path: str = {feed_path},
         access_key=os.environ.get("MINIO_ACCESS_KEY"),
         secret_key=os.environ.get("MINIO_SECRET_KEY"),
+        parse_date=None,
         timezone_str="Europe/Brussels",
 ) -> pd.DataFrame:
     client = minio.Minio(
@@ -239,8 +301,7 @@ def fetch_data(
 
 """
 
-
-all_code ="""
+all_code = """
 from datetime import datetime, timedelta
 import os
 import tempfile
@@ -249,6 +310,35 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pytz import timezone
 import pandas as pd
+
+def fetch_data_per_days(
+        start_date={start_date},
+        end_date={end_date},
+        feed_path: str = {feed_path},
+        access_key=os.environ.get("MINIO_ACCESS_KEY"),
+        secret_key=os.environ.get("MINIO_SECRET_KEY"),
+        timezone_str="Europe/Brussels",
+        output_dir=  "data"
+
+):
+    os.makedirs(output_dir, exist_ok=True)
+    days = [
+        start_date + timedelta(days=i)
+        for i in range((end_date - start_date).days)
+    ]
+    for day in days:
+        table = fetch_data(
+            day,
+            day + timedelta(days=1),
+            feed_path,
+            access_key=access_key,
+            secret_key=secret_key,
+            timezone_str=timezone_str,
+        )
+        if table is not None:
+            table.to_csv(f"data/{day.isoformat()[:10]}.csv", index=False)
+
+
 
 def fetch_data(
         start_date={start_date},
