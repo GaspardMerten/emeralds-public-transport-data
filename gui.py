@@ -118,22 +118,18 @@ def bulk_dl(start_date=None, end_date=None):
         st.session_state.download = False
 
     if table:
-        import tempfile
-        import gzip
+        import pyarrow as pa
+        download_id = str(uuid.uuid4())
+        file_path = f"{download_id}.csv.gz"
 
-        with tempfile.NamedTemporaryFile(mode='w+b', delete=False, suffix='.csv.gz') as tmpfile:
-            # Write CSV directly to gzip file
-            with gzip.GzipFile(fileobj=tmpfile, mode='w') as gzfile:
-                table.to_pandas().to_csv(gzfile, index=False, encoding='utf-8')
-
-            tmpfile_path = tmpfile.name
-
-        # Read the gzipped file to pass to your downloader
-        with open(tmpfile_path, 'rb') as f:
-            gzipped_csv = f.read()
-
+        print(table.schema)
+        columns_todrop = ["multiCarriageDetails", "trip_modifiedTrip"]
+        table = table.drop(columns_todrop)
+        with pa.CompressedOutputStream(file_path, "gzip") as out:
+            csv.write_csv(table, out)
+        del table
         downloader(
-            gzipped_csv,
+            open(file_path, "rb").read(),
             day.isoformat()[:10] + '.csv',
             "application/gzip",
         )
