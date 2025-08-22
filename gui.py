@@ -159,19 +159,18 @@ if feed:
 
         tab1, tab2= st.tabs(["General", "Bulk download"])
         with tab2:
-
+            start_date = st.date_input(key="start_date", label="Start Date", value=datetime.now() - timedelta(days=7))
+            end_date = st.date_input(key="end_date", label="End Date", value=datetime.now())
+            start_date = datetime(start_date.year, start_date.month, start_date.day)
+            end_date = datetime(end_date.year, end_date.month, end_date.day)
             if feed_type_enum != FeedType.VEHICLE_POSITION:
                 st.warning("Bulk download on web is only supported for vehicle position feeds. Please use the code below")
             elif provider['name'] == 'OVAPI':
                 st.warning("Bulk download on web is not supported for OVAPI, Streamlit cloud does not offer enough RAM")
             else:
-
                 st.write("Specify a start and end date. Then click on download button. CSV files for each day will be downloaded. For large provider such as OVAPI you can expect to wait close to a minute per file.")
 
-                start_date = st.date_input(key="start_date", label="Start Date", value=datetime.now() - timedelta(days=7))
-                end_date = st.date_input(key="end_date", label="End Date", value=datetime.now())
-                start_date = datetime(start_date.year, start_date.month, start_date.day)
-                end_date=datetime(end_date.year, end_date.month, end_date.day)
+
                 download = st.button("Download")
                 if download:
                     st.session_state["download"] = True
@@ -187,35 +186,35 @@ if feed:
                         end_date=datetime(end_date.year, end_date.month, end_date.day),
                     )
 
-                st.subheader("Get the code")
+            st.subheader("Get the code")
 
-                code = provider['code']
-                code = code.replace('{start_date}',
-                                    f'datetime({start_date.year}, {start_date.month}, {start_date.day}, {start_date.hour}, {start_date.minute}, 0, 0)')
-                code = code.replace('{end_date}',
-                                    f'datetime({end_date.year}, {end_date.month}, {end_date.day}, {end_date.hour}, {end_date.minute}, 0, 0)')
-                code = code.replace('{feed_path}', f'"{feed_path}"')
-                file_name = f"{provider['name'].replace(' ', '_').lower()}_fetch_data.py"
-                st.download_button(
-                    label="Download Code",
-                    data=code,
-                    file_name=file_name,
-                    mime="text/plain"
-                )
+            code = provider['code']
+            code = code.replace('{start_date}',
+                                f'datetime({start_date.year}, {start_date.month}, {start_date.day}, {start_date.hour}, {start_date.minute}, 0, 0)')
+            code = code.replace('{end_date}',
+                                f'datetime({end_date.year}, {end_date.month}, {end_date.day}, {end_date.hour}, {end_date.minute}, 0, 0)')
+            code = code.replace('{feed_path}', f'"{feed_path}"')
+            file_name = f"{provider['name'].replace(' ', '_').lower()}_fetch_data.py"
+            st.download_button(
+                label="Download Code",
+                data=code,
+                file_name=file_name,
+                mime="text/plain"
+            )
 
-                st.text(
-                    "Once, you have downloaded the code, you can run it in your local environment to fetch the data, but first you need to install the required packages:")
-                st.code("pip install pytz pyarrow minio pandas")
-                st.code(f"""from {file_name.split('.')[0]} import fetch_data
+            st.text(
+                "Once, you have downloaded the code, you can run it in your local environment to fetch the data, but first you need to install the required packages:")
+            st.code("pip install pytz pyarrow minio pandas")
+            st.code(f"""from {file_name.split('.')[0]} import fetch_data
 from datetime import datetime
 
 df = fetch_data_per_days(
-    start_date=datetime({start_date.year}, {start_date.month}, {start_date.day}, {start_date.hour}, {start_date.minute}),
-    end_date=datetime({end_date.year}, {end_date.month}, {end_date.day}, {end_date.hour}, {end_date.minute}),
-    access_key="YOUR_ACCESS_KEY",
-    secret_key="YOUR_SECRET_KEY",
+start_date=datetime({start_date.year}, {start_date.month}, {start_date.day}, {start_date.hour}, {start_date.minute}),
+end_date=datetime({end_date.year}, {end_date.month}, {end_date.day}, {end_date.hour}, {end_date.minute}),
+access_key="YOUR_ACCESS_KEY",
+secret_key="YOUR_SECRET_KEY",
 )
-    """)
+""")
         with tab1:
             available_dates = get_available_dates(feed_path)
 
