@@ -329,7 +329,7 @@ secret_key="YOUR_SECRET_KEY",
                         code = code.replace('{feed_path}', f'"{feed_path}"')
                         file_name = f"{provider['name'].replace(' ', '_').lower()}_fetch_data.py"
                         st.download_button(
-                            label="Download Code",
+                            label="Download the code",
                             data=code,
                             file_name=file_name,
                             mime="text/plain"
