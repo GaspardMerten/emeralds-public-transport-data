@@ -135,7 +135,7 @@ def bulk_dl(start_date=None, end_date=None):
     # Save table
     if table:
         download_id = str(uuid.uuid4())
-        file_path = f"{download_id}.csv.gz"
+        file_path = f"{download_id}.csv"
 
         columns_todrop = ["multiCarriageDetails", "trip_modifiedTrip"]
         try:
@@ -149,7 +149,7 @@ def bulk_dl(start_date=None, end_date=None):
         del table
         downloader(
             open(file_path, "rb").read(),
-            f"{day.isoformat()}_{hour:02d}_to_{(hour + 1) % 24:02d}.csv.gz",
+            f"{day.isoformat()}_{hour:02d}_to_{(hour + 1) % 24:02d}.csv",
             "application/gzip",
         )
 
