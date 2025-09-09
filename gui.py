@@ -149,7 +149,7 @@ def bulk_dl(start_date=None, end_date=None):
         del table
         downloader(
             open(file_path, "rb").read(),
-            f"{day.isoformat()}_{hour:02d}_to_{(hour + 1) % 24:02d}.csv",
+            f"{day.isoformat()[:10]}_{hour:02d}_to_{(hour + 1) % 24:02d}.csv",
             "application/gzip",
         )
 
