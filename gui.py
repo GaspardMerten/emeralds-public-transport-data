@@ -1,11 +1,12 @@
-import gzip
 import json
 import time
 import uuid
-from datetime import timedelta, datetime
+from datetime import datetime
+from datetime import timedelta
 from io import BytesIO
 
 import plotly.express
+import pyarrow as pa
 import pyarrow.parquet as pq
 import pydeck
 import streamlit as st
@@ -14,7 +15,7 @@ from pytz import timezone
 from streamlit_calendar_input import calendar_input
 from streamlit_downloader import downloader
 
-from fetch import FeedType, get_available_dates, fetch_data, riga_code, all_code, fetch_data_per_days
+from fetch import FeedType, get_available_dates, fetch_data, riga_code, all_code
 
 st.set_page_config(
     page_title="Emeralds - GTFS RT Data Viewer",
@@ -24,6 +25,7 @@ st.set_page_config(
 if 'download' not in st.session_state:
     st.session_state['download'] = False
     st.session_state["current_fetch_day"] = None
+    st.session_state["current_fetch_hour"] = None
 
 def parse_date_riga(date, file_name):
     hour = int(file_name.split("/")[-1].split(".")[0])
@@ -95,47 +97,62 @@ feed = st.selectbox("Select a GTFS RT feed", list(providers.keys()), key="feed_s
                     index=None)
 
 
-def bulk_dl(start_date=None, end_date=None):
-    if st.session_state.current_fetch_day is None:
-        st.session_state.current_fetch_day = start_date
 
+def bulk_dl(start_date=None, end_date=None):
+    if 'current_fetch_day' not in st.session_state or st.session_state.current_fetch_day is None:
+        st.session_state.current_fetch_day = start_date
+        st.session_state.current_fetch_hour = 0
 
     day = st.session_state.current_fetch_day
-    st.text(f"Downloading {day.isoformat()[:10]}...")
+    hour = st.session_state.current_fetch_hour
+
+    st.text(f"Downloading data for {day.date()} hour {hour}:00 to {hour + 1}:00")
+
+    start_dt = day + timedelta(hours=hour)
+    end_dt = start_dt + timedelta(hours=1)
 
     table = fetch_data(
-            start_date=day,
-            end_date=day + timedelta(days=1),
-            feed_path=feed_path,
-            parse_date=provider.get('file_to_period', None),
-            timezone_str=provider.get('timezone', 'UTC'),
-
+        start_date=start_dt,
+        end_date=end_dt,
+        feed_path=feed_path,
+        parse_date=provider.get('file_to_period', None),
+        timezone_str=provider.get('timezone', 'UTC'),
     )
-    st.session_state.current_fetch_day += timedelta(days=1)
 
+    # Update hour and day
+    st.session_state.current_fetch_hour += 1
+    if st.session_state.current_fetch_hour >= 24:
+        st.session_state.current_fetch_hour = 0
+        st.session_state.current_fetch_day += timedelta(days=1)
+
+    # Stop condition
     if st.session_state.current_fetch_day > end_date:
         st.session_state.current_fetch_day = None
+        st.session_state.current_fetch_hour = None
         st.session_state.download = False
+        return
 
+    # Save table
     if table:
-        import pyarrow as pa
         download_id = str(uuid.uuid4())
         file_path = f"{download_id}.csv.gz"
 
-        print(table.schema)
         columns_todrop = ["multiCarriageDetails", "trip_modifiedTrip"]
         try:
             table = table.drop(columns_todrop)
         except Exception:
             pass
+
         with pa.CompressedOutputStream(file_path, "gzip") as out:
             csv.write_csv(table, out)
+
         del table
         downloader(
             open(file_path, "rb").read(),
-            day.isoformat()[:10] + '.csv',
+            f"{day.isoformat()}_{hour:02d}_to_{(hour + 1) % 24:02d}.csv.gz",
             "application/gzip",
         )
+
     time.sleep(1)
     st.rerun()
 
