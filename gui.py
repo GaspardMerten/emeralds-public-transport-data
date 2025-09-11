@@ -6,7 +6,6 @@ from datetime import timedelta
 from io import BytesIO
 
 import plotly.express
-import pyarrow as pa
 import pyarrow.parquet as pq
 import pydeck
 import streamlit as st
@@ -26,6 +25,7 @@ if 'download' not in st.session_state:
     st.session_state['download'] = False
     st.session_state["current_fetch_day"] = None
     st.session_state["current_fetch_hour"] = None
+
 
 def parse_date_riga(date, file_name):
     hour = int(file_name.split("/")[-1].split(".")[0])
@@ -97,7 +97,6 @@ feed = st.selectbox("Select a GTFS RT feed", list(providers.keys()), key="feed_s
                     index=None)
 
 
-
 def bulk_dl(start_date=None, end_date=None):
     if 'current_fetch_day' not in st.session_state or st.session_state.current_fetch_day is None:
         st.session_state.current_fetch_day = start_date
@@ -143,14 +142,14 @@ def bulk_dl(start_date=None, end_date=None):
         except Exception:
             pass
 
-        with pa.CompressedOutputStream(file_path, "gzip") as out:
-            csv.write_csv(table, out)
-
+        csv_string = csv.write_csv(table).to_pybytes()
+        with open(file_path, "wb") as f:
+            f.write(csv_string)
         del table
         downloader(
             open(file_path, "rb").read(),
             f"{day.isoformat()[:10]}_{hour:02d}_to_{(hour + 1) % 24:02d}.csv",
-            "application/gzip",
+            "text/csv"
         )
 
     time.sleep(1)
@@ -172,20 +171,20 @@ if feed:
         feed_type_enum = FeedType(feed_type)
         feed_path = provider['feeds'][feed_type_enum]
 
-
-        tab1, tab2= st.tabs(["General", "Bulk download"])
+        tab1, tab2 = st.tabs(["General", "Bulk download"])
         with tab2:
             start_date = st.date_input(key="start_date", label="Start Date", value=datetime.now() - timedelta(days=7))
             end_date = st.date_input(key="end_date", label="End Date", value=datetime.now())
             start_date = datetime(start_date.year, start_date.month, start_date.day)
             end_date = datetime(end_date.year, end_date.month, end_date.day)
             if feed_type_enum != FeedType.VEHICLE_POSITION:
-                st.warning("Bulk download on web is only supported for vehicle position feeds. Please use the code below")
+                st.warning(
+                    "Bulk download on web is only supported for vehicle position feeds. Please use the code below")
             elif provider['name'] == 'OVAPI':
                 st.warning("Bulk download on web is not supported for OVAPI, Streamlit cloud does not offer enough RAM")
             else:
-                st.write("Specify a start and end date. Then click on download button. CSV files for each day will be downloaded. For large provider such as OVAPI you can expect to wait close to a minute per file.")
-
+                st.write(
+                    "Specify a start and end date. Then click on download button. CSV files for each day will be downloaded. For large provider such as OVAPI you can expect to wait close to a minute per file.")
 
                 download = st.button("Download")
                 if download:
@@ -237,7 +236,6 @@ secret_key="YOUR_SECRET_KEY",
             st.write("Available Dates:")
             if not available_dates:
                 st.write("No available dates found for this feed type.")
-
 
             if available_dates:
                 selected_date = calendar_input(available_dates)
@@ -416,7 +414,8 @@ df = fetch_data(
                                 timestamps = group[fetch_time_column].tolist()
                                 path = group[[longitude_column, latitude_column]].values.tolist()
                                 groups.append({
-                                    "timestamps": list(map(int, [timestamp - start_timestamp for timestamp in timestamps])),
+                                    "timestamps": list(
+                                        map(int, [timestamp - start_timestamp for timestamp in timestamps])),
                                     "path": [
                                         [float(coord) for coord in point] for point in path
                                     ],
