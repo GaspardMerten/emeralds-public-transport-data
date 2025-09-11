@@ -142,9 +142,7 @@ def bulk_dl(start_date=None, end_date=None):
         except Exception:
             pass
 
-        csv_string = csv.write_csv(table).to_pybytes()
-        with open(file_path, "wb") as f:
-            f.write(csv_string)
+        csv_string = csv.write_csv(table, output_file=file_path)
         del table
         downloader(
             open(file_path, "rb").read(),
