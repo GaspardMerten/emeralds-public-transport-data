@@ -105,11 +105,11 @@ def bulk_dl(start_date=None, end_date=None):
     day = st.session_state.current_fetch_day
     hour = st.session_state.current_fetch_hour
 
-    st.text(f"Downloading data for {day.date()} hour {hour}:00 to {hour + 1}:00")
+    st.text(f"Downloading data for {day.date()} hour {hour}:00 to {hour + 1}:00.")
 
     start_dt = day + timedelta(hours=hour)
     end_dt = start_dt + timedelta(hours=1)
-
+    print("yo")
     table = fetch_data(
         start_date=start_dt,
         end_date=end_dt,
@@ -117,6 +117,8 @@ def bulk_dl(start_date=None, end_date=None):
         parse_date=provider.get('file_to_period', None),
         timezone_str=provider.get('timezone', 'UTC'),
     )
+
+    print(table)
 
     # Update hour and day
     st.session_state.current_fetch_hour += 1
