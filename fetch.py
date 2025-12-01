@@ -145,7 +145,7 @@ def fetch_data(
                     file_start_date, file_end_date = parse_date(current_date, file.object_name)
                     file_start_date = time_zone.localize(file_start_date, is_dst=None)
                     file_end_date = time_zone.localize(file_end_date, is_dst=None)
-
+                    print(file, file_start_date, file_end_date)
                     if end_date <= file_start_date or start_date >= file_end_date:
                         continue
                     print("Fetching file:", file.object_name)

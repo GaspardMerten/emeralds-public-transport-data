@@ -131,6 +131,7 @@ def bulk_dl(start_date=None, end_date=None):
         st.session_state.download = False
         return
 
+    print(table)
     # Save table
     if table:
         download_id = str(uuid.uuid4())
@@ -149,6 +150,10 @@ def bulk_dl(start_date=None, end_date=None):
             f"{day.isoformat()[:10]}_{hour:02d}_to_{(hour + 1) % 24:02d}.csv",
             "text/csv"
         )
+        print("Downloaded file:", file_path)
+        # rm
+        import os
+        os.remove(file_path)
 
     time.sleep(1)
     st.rerun()
